@@ -1,0 +1,12 @@
+{
+  "name": "Confirmações Festival Ballet",
+  "short_name": "Festival Ballet",
+  "description": "Dashboard de confirmações do Festival Ballet",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fff4fb",
+  "theme_color": "#ff4fa0",
+  "orientation": "any",
+  "lang": "pt-BR"
+}
