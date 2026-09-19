@@ -1,0 +1,725 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Confirmações Festival Ballet</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+
+  <style>
+    :root{
+      --bg:#fff4fb;
+      --panel:#fff8fd;
+      --panel-2:#ffe6f5;
+      --text:#5c2348;
+      --muted:#9b6c89;
+      --border:#f3c4df;
+      --accent:#ff4fa0;
+      --accent-2:#ff85c2;
+      --ok:#db2777;
+      --danger:#e11d48;
+      --shadow:0 16px 36px rgba(214, 51, 132, .12);
+      --radius:20px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:linear-gradient(180deg,#fff7fc,#ffeef8 48%,#fff9fd);
+      color:var(--text);
+      min-height:100vh;
+    }
+
+    button,input,select{font:inherit}
+
+    .hidden{display:none!important}
+
+    .login-wrap{
+      min-height:100vh;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+
+    .login-card{
+      width:min(430px,100%);
+      background:rgba(255,248,253,.97);
+      border:1px solid var(--border);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:30px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:8px;
+    }
+
+    .brand-mark{
+      width:44px;height:44px;border-radius:14px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      font-size:22px;
+      box-shadow:0 8px 24px rgba(124,58,237,.35);
+    }
+
+    h1,h2,h3,p{margin-top:0}
+    .muted{color:var(--muted)}
+
+    .field{margin-top:16px}
+    .field label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:7px;
+    }
+    .field input,.control{
+      width:100%;
+      border:1px solid var(--border);
+      background:#fffdfd;
+      color:var(--text);
+      border-radius:12px;
+      padding:12px 14px;
+      outline:none;
+    }
+    .field input:focus,.control:focus{border-color:#6d5dfc}
+
+    .btn{
+      border:0;
+      border-radius:12px;
+      padding:12px 16px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .btn-primary{
+      width:100%;
+      margin-top:18px;
+      color:white;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    }
+    .btn-secondary{
+      color:var(--text);
+      background:#fff1f8;
+      border:1px solid var(--border);
+    }
+
+    .error{
+      margin-top:14px;
+      color:#fecaca;
+      background:rgba(225,29,72,.10);
+      border:1px solid rgba(220,38,38,.35);
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:14px;
+    }
+
+    .app{
+      max-width:1450px;
+      margin:0 auto;
+      padding:24px;
+    }
+
+    .topbar{
+      display:flex;
+      gap:16px;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:22px;
+      flex-wrap:wrap;
+    }
+
+    .topbar-actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .status{
+      color:#9d174d;
+      background:rgba(244,114,182,.12);
+      border:1px solid rgba(244,114,182,.35);
+      padding:8px 11px;
+      border-radius:999px;
+      font-size:13px;
+    }
+
+    .grid{
+      display:grid;
+      gap:16px;
+    }
+
+    .summary-grid{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      margin-bottom:16px;
+    }
+
+    .card{
+      background:rgba(255,248,253,.96);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+
+    .summary-card{padding:18px}
+    .summary-label{font-size:13px;color:var(--muted)}
+    .summary-value{font-size:31px;font-weight:800;margin-top:6px}
+    .summary-sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+    .turmas-grid{
+      grid-template-columns:repeat(7,minmax(0,1fr));
+      margin-bottom:16px;
+    }
+    .turma-card{padding:15px}
+    .turma-code{font-weight:800;font-size:14px}
+    .turma-count{font-size:25px;font-weight:800;margin:5px 0 2px}
+    .turma-name{font-size:11px;color:var(--muted);line-height:1.3}
+
+    .charts-grid{
+      grid-template-columns:1.4fr 1fr;
+      margin-bottom:16px;
+    }
+
+    .chart-card{padding:18px;min-height:390px}
+    .chart-wrap{position:relative;height:310px}
+
+    .table-card{overflow:hidden}
+    .table-toolbar{
+      display:grid;
+      grid-template-columns:2fr 1fr 1fr;
+      gap:12px;
+      padding:16px;
+      border-bottom:1px solid var(--border);
+    }
+
+    .table-wrap{
+      width:100%;
+      overflow:auto;
+      max-height:65vh;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:720px;
+    }
+    th,td{
+      padding:12px 14px;
+      border-bottom:1px solid rgba(37,52,81,.65);
+      text-align:left;
+      font-size:14px;
+    }
+    th{
+      position:sticky;
+      top:0;
+      z-index:2;
+      background:#ffeaf6;
+      color:#8b3a67;
+    }
+    tbody tr:hover{background:rgba(255,105,180,.08)}
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:12px;
+      background:#fff0f7;
+      border:1px solid var(--border);
+    }
+
+    .empty{
+      padding:30px;
+      text-align:center;
+      color:var(--muted);
+    }
+
+    .footer{
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      margin:20px 0 8px;
+    }
+
+    @media (max-width:1100px){
+      .summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .turmas-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+      .charts-grid{grid-template-columns:1fr}
+    }
+
+    @media (max-width:700px){
+      .app{padding:14px}
+      .summary-grid{grid-template-columns:1fr 1fr}
+      .turmas-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .table-toolbar{grid-template-columns:1fr}
+      .topbar{align-items:flex-start}
+      .topbar-actions{width:100%}
+      .topbar-actions .btn{flex:1}
+      .chart-card{min-height:340px}
+      .chart-wrap{height:270px}
+    }
+  </style>
+</head>
+
+<body>
+  <section id="loginView" class="login-wrap">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-mark">🩰</div>
+        <div>
+          <h2 style="margin-bottom:2px">Festival Ballet</h2>
+          <div class="muted">Dashboard de confirmações</div>
+        </div>
+      </div>
+
+      <p class="muted" style="margin-top:18px">
+        Entre com o usuário criado no Supabase para visualizar os dados.
+      </p>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input id="email" type="email" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="password">Senha</label>
+          <input id="password" type="password" autocomplete="current-password" required />
+        </div>
+        <button id="loginBtn" class="btn btn-primary" type="submit">Entrar</button>
+        <div id="loginError" class="error hidden"></div>
+      </form>
+    </div>
+  </section>
+
+  <main id="appView" class="app hidden">
+    <header class="topbar">
+      <div>
+        <div class="brand">
+          <div class="brand-mark">🩰</div>
+          <div>
+            <h1 style="margin-bottom:3px;font-size:26px">Confirmações Festival Ballet</h1>
+            <div class="muted">Visão geral por turma e lista de participantes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <span id="syncStatus" class="status">Dados carregados</span>
+        <button id="refreshBtn" class="btn btn-secondary">Atualizar agora</button>
+        <button id="logoutBtn" class="btn btn-secondary">Sair</button>
+      </div>
+    </header>
+
+    <section class="grid summary-grid">
+      <div class="card summary-card">
+        <div class="summary-label">Total de participantes</div>
+        <div id="totalGeral" class="summary-value">0</div>
+        <div class="summary-sub">Registros válidos na última sincronização</div>
+      </div>
+
+      <div class="card summary-card">
+        <div class="summary-label">Turmas com participantes</div>
+        <div id="turmasAtivas" class="summary-value">0</div>
+        <div class="summary-sub">Quantidade de turmas com pelo menos 1 aluno</div>
+      </div>
+
+      <div class="card summary-card">
+        <div class="summary-label">Maior turma</div>
+        <div id="maiorTurma" class="summary-value" style="font-size:24px">—</div>
+        <div id="maiorTurmaQtd" class="summary-sub">—</div>
+      </div>
+
+      <div class="card summary-card">
+        <div class="summary-label">Última sincronização</div>
+        <div id="ultimaAtualizacao" class="summary-value" style="font-size:20px">—</div>
+        <div class="summary-sub">Horário de Brasília</div>
+      </div>
+    </section>
+
+    <section id="turmasCards" class="grid turmas-grid"></section>
+
+    <section class="grid charts-grid">
+      <div class="card chart-card">
+        <h3>Quantidade por turma</h3>
+        <p class="muted">Comparação direta entre as turmas.</p>
+        <div class="chart-wrap">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <h3>Distribuição percentual</h3>
+        <p class="muted">Participação de cada turma no total.</p>
+        <div class="chart-wrap">
+          <canvas id="donutChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="card table-card">
+      <div class="table-toolbar">
+        <input id="searchInput" class="control" type="search" placeholder="Pesquisar por nome..." />
+        <select id="turmaFilter" class="control">
+          <option value="">Todas as turmas</option>
+        </select>
+        <select id="sortSelect" class="control">
+          <option value="nome" selected>Ordem alfabética</option>
+          <option value="numero">Ordem da planilha / Nº</option>
+          <option value="turma">Turma + nome</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:90px">Nº</th>
+              <th>Nome</th>
+              <th style="width:220px">Turma</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty hidden">Nenhum participante encontrado.</div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Atualizado automaticamente pelo n8n a partir da planilha FESTIVAL.
+    </div>
+  </main>
+
+  <script>
+    const SUPABASE_URL = 'https://qdoogaljgztwnhakkigm.supabase.co';
+    const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_ZAHKVE13V9cmkkTBdppNIg_JaPUHnAt';
+
+    const client = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const TURMAS = [
+      { codigo:'PB', nome:'Pré-Baby' },
+      { codigo:'B1', nome:'Baby Class - I' },
+      { codigo:'B2', nome:'Baby Class - II' },
+      { codigo:'P1', nome:'Preliminar - I' },
+      { codigo:'P2', nome:'Preliminar - II' },
+      { codigo:'AV', nome:'Avançado' },
+      { codigo:'SD', nome:'Street Dance' }
+    ];
+
+    let dados = [];
+    let snapshot = null;
+    let barChart = null;
+    let donutChart = null;
+
+    const loginView = document.getElementById('loginView');
+    const appView = document.getElementById('appView');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
+    const loginBtn = document.getElementById('loginBtn');
+
+    const searchInput = document.getElementById('searchInput');
+    const turmaFilter = document.getElementById('turmaFilter');
+    const sortSelect = document.getElementById('sortSelect');
+    const tableBody = document.getElementById('tableBody');
+    const emptyState = document.getElementById('emptyState');
+
+    function showLogin() {
+      loginView.classList.remove('hidden');
+      appView.classList.add('hidden');
+    }
+
+    function showApp() {
+      loginView.classList.add('hidden');
+      appView.classList.remove('hidden');
+    }
+
+    function setLoginError(message='') {
+      if (!message) {
+        loginError.classList.add('hidden');
+        loginError.textContent = '';
+        return;
+      }
+      loginError.textContent = message;
+      loginError.classList.remove('hidden');
+    }
+
+    loginForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setLoginError('');
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Entrando...';
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      const { error } = await client.auth.signInWithPassword({ email, password });
+
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Entrar';
+
+      if (error) {
+        setLoginError('Não foi possível entrar. Confira o e-mail e a senha.');
+        return;
+      }
+
+      showApp();
+      await carregarDashboard();
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await client.auth.signOut();
+      showLogin();
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', carregarDashboard);
+
+    async function carregarDashboard() {
+      document.getElementById('syncStatus').textContent = 'Atualizando...';
+
+      const { data, error } = await client
+        .from('festival_dashboard')
+        .select('id,dados,total,atualizado_em')
+        .eq('id', 1)
+        .single();
+
+      if (error) {
+        document.getElementById('syncStatus').textContent = 'Erro ao carregar';
+        console.error(error);
+        return;
+      }
+
+      snapshot = data;
+      dados = Array.isArray(data.dados) ? data.dados : [];
+
+      montarResumo();
+      montarFiltros();
+      montarGraficos();
+      renderTabela();
+
+      document.getElementById('syncStatus').textContent = 'Dados carregados';
+    }
+
+    function contagensPorTurma() {
+      const counts = {};
+      TURMAS.forEach(t => counts[t.codigo] = 0);
+
+      dados.forEach(item => {
+        const codigo = String(item.turma_codigo || '').toUpperCase();
+        if (!(codigo in counts)) counts[codigo] = 0;
+        counts[codigo]++;
+      });
+
+      return counts;
+    }
+
+    function montarResumo() {
+      const counts = contagensPorTurma();
+      const total = Number(snapshot?.total ?? dados.length);
+
+      document.getElementById('totalGeral').textContent = total;
+
+      const ativas = Object.values(counts).filter(v => v > 0).length;
+      document.getElementById('turmasAtivas').textContent = ativas;
+
+      const maior = TURMAS
+        .map(t => ({...t, qtd: counts[t.codigo] || 0}))
+        .sort((a,b) => b.qtd - a.qtd)[0];
+
+      document.getElementById('maiorTurma').textContent =
+        maior && maior.qtd > 0 ? maior.codigo : '—';
+
+      document.getElementById('maiorTurmaQtd').textContent =
+        maior && maior.qtd > 0 ? `${maior.nome}: ${maior.qtd}` : '—';
+
+      const dt = snapshot?.atualizado_em ? new Date(snapshot.atualizado_em) : null;
+
+      document.getElementById('ultimaAtualizacao').textContent = dt
+        ? new Intl.DateTimeFormat('pt-BR', {
+            timeZone:'America/Sao_Paulo',
+            day:'2-digit',
+            month:'2-digit',
+            year:'numeric',
+            hour:'2-digit',
+            minute:'2-digit'
+          }).format(dt)
+        : '—';
+
+      const container = document.getElementById('turmasCards');
+      container.innerHTML = '';
+
+      TURMAS.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'card turma-card';
+        card.innerHTML = `
+          <div class="turma-code">${t.codigo}</div>
+          <div class="turma-count">${counts[t.codigo] || 0}</div>
+          <div class="turma-name">${t.nome}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function montarFiltros() {
+      const atual = turmaFilter.value;
+      turmaFilter.innerHTML = '<option value="">Todas as turmas</option>';
+
+      TURMAS.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.codigo;
+        opt.textContent = `${t.codigo} — ${t.nome}`;
+        turmaFilter.appendChild(opt);
+      });
+
+      turmaFilter.value = atual;
+    }
+
+    function montarGraficos() {
+      const counts = contagensPorTurma();
+      const labels = TURMAS.map(t => t.codigo);
+      const values = TURMAS.map(t => counts[t.codigo] || 0);
+
+      if (barChart) barChart.destroy();
+      if (donutChart) donutChart.destroy();
+
+      const chartColors = [
+        '#ff6fae',  // PB - rosa
+        '#8b5cf6',  // B1 - roxo
+        '#f59e0b',  // B2 - laranja
+        '#22c55e',  // P1 - verde
+        '#3b82f6',  // P2 - azul
+        '#14b8a6',  // AV - turquesa
+        '#a78bfa'   // SD - lilás
+      ];
+
+      barChart = new Chart(document.getElementById('barChart'), {
+        type:'bar',
+        data:{
+          labels,
+          datasets:[{
+            label:'Participantes',
+            data:values,
+            backgroundColor: chartColors,
+            borderColor: '#db2777',
+            borderWidth:1,
+            borderRadius:12
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              callbacks:{
+                title:(items)=>{
+                  const idx = items[0].dataIndex;
+                  return `${TURMAS[idx].codigo} — ${TURMAS[idx].nome}`;
+                }
+              }
+            }
+          },
+          scales:{
+            x:{ticks:{color:'#8b3a67'},grid:{display:false}},
+            y:{beginAtZero:true,ticks:{precision:0,color:'#8b3a67'},grid:{color:'rgba(244,114,182,.18)'}}
+          }
+        }
+      });
+
+      donutChart = new Chart(document.getElementById('donutChart'), {
+        type:'doughnut',
+        data:{
+          labels:TURMAS.map(t => `${t.codigo} — ${t.nome}`),
+          datasets:[{
+            data:values,
+            backgroundColor: chartColors,
+            borderColor: '#fff8fd',
+            borderWidth:2
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{
+              position:'bottom',
+              labels:{color:'#8b3a67',boxWidth:12}
+            }
+          }
+        }
+      });
+    }
+
+    function renderTabela() {
+      const termo = searchInput.value.trim().toLocaleLowerCase('pt-BR');
+      const filtroTurma = turmaFilter.value;
+      const ordem = sortSelect.value;
+
+      let lista = dados.filter(item => {
+        const nome = String(item.nome || '');
+        const codigo = String(item.turma_codigo || '');
+        const bateNome = !termo || nome.toLocaleLowerCase('pt-BR').includes(termo);
+        const bateTurma = !filtroTurma || codigo === filtroTurma;
+        return bateNome && bateTurma;
+      });
+
+      if (ordem === 'nome') {
+        lista.sort((a,b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+      } else if (ordem === 'turma') {
+        lista.sort((a,b) => {
+          const t = String(a.turma).localeCompare(String(b.turma), 'pt-BR');
+          return t !== 0 ? t : String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+        });
+      } else {
+        lista.sort((a,b) => Number(a.numero) - Number(b.numero));
+      }
+
+      tableBody.innerHTML = '';
+
+      lista.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${item.numero ?? ''}</td>
+          <td>${escapeHtml(item.nome ?? '')}</td>
+          <td><span class="badge">${escapeHtml(item.turma_codigo ?? '')} — ${escapeHtml(item.turma ?? '')}</span></td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      emptyState.classList.toggle('hidden', lista.length > 0);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
+    }
+
+    searchInput.addEventListener('input', renderTabela);
+    turmaFilter.addEventListener('change', renderTabela);
+    sortSelect.addEventListener('change', renderTabela);
+
+    async function iniciar() {
+      const { data: { session } } = await client.auth.getSession();
+
+      if (session) {
+        showApp();
+        await carregarDashboard();
+      } else {
+        showLogin();
+      }
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
