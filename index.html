@@ -266,6 +266,100 @@
       .chart-card{min-height:340px}
       .chart-wrap{height:270px}
     }
+
+    .section-title{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:16px;
+      margin:28px 0 14px;
+      flex-wrap:wrap;
+    }
+
+    .section-title h2{
+      margin:0 0 4px;
+      font-size:24px;
+      color:var(--text);
+    }
+
+    .engagement-chart-card{
+      padding:20px;
+      margin-bottom:16px;
+      min-height:470px;
+    }
+
+    .engagement-chart-wrap{
+      position:relative;
+      height:390px;
+    }
+
+    .summary-table-card{
+      overflow:hidden;
+      margin-bottom:16px;
+    }
+
+    .summary-table-card table{
+      min-width:850px;
+    }
+
+    .summary-table-card thead th{
+      background:#f8a7c7;
+      color:#6f174d;
+      font-weight:800;
+      text-align:center;
+    }
+
+    .summary-table-card tbody td{
+      text-align:center;
+    }
+
+    .summary-table-card tbody td:first-child{
+      text-align:left;
+      font-weight:700;
+    }
+
+    .summary-total-row td{
+      background:#f45aaa;
+      color:white;
+      font-weight:800!important;
+      border-bottom:0;
+    }
+
+    .street-card{
+      padding:18px;
+      margin-bottom:16px;
+    }
+
+    .street-grid{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+      margin-top:14px;
+    }
+
+    .street-metric{
+      background:#fff0f7;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+    }
+
+    .street-metric .label{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .street-metric .value{
+      font-size:25px;
+      font-weight:800;
+      margin-top:4px;
+    }
+
+    @media (max-width:700px){
+      .street-grid{grid-template-columns:1fr 1fr}
+      .engagement-chart-wrap{height:470px}
+    }
+
   </style>
 </head>
 
@@ -362,6 +456,76 @@
           <canvas id="donutChart"></canvas>
         </div>
       </div>
+
+    </section>
+
+    <div class="section-title">
+      <div>
+        <h2>Engajamento das Turmas — Festival 2026</h2>
+        <div class="muted">Comparação entre alunas ativas, confirmadas e pendentes nas turmas do Ballet Relever.</div>
+      </div>
+    </div>
+
+    <section class="card engagement-chart-card">
+      <div class="engagement-chart-wrap">
+        <canvas id="engagementChart"></canvas>
+      </div>
+    </section>
+
+    <section class="card summary-table-card">
+      <div style="padding:18px 18px 8px">
+        <h3 style="margin-bottom:4px">Resumo das Turmas e Confirmações do Festival 2026</h3>
+        <p class="muted">Street Dance não entra neste total geral do Ballet.</p>
+      </div>
+
+      <div class="table-wrap" style="max-height:none">
+        <table>
+          <thead>
+            <tr>
+              <th>Turma</th>
+              <th>Alunas Ativas</th>
+              <th>Confirmadas Festival</th>
+              <th>Pendentes</th>
+              <th>Taxa de Adesão (%)</th>
+            </tr>
+          </thead>
+          <tbody id="engagementTableBody"></tbody>
+          <tfoot>
+            <tr id="engagementTotalRow" class="summary-total-row">
+              <td>TOTAL GERAL</td>
+              <td id="totalAtivasBallet">0</td>
+              <td id="totalConfirmadasBallet">0</td>
+              <td id="totalPendentesBallet">0</td>
+              <td id="taxaGeralBallet">0,0%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="card street-card">
+      <h3 style="margin-bottom:4px">Street Dance</h3>
+      <p class="muted" style="margin-bottom:0">
+        Turma terceirizada. Não entra no total geral do Ballet Relever e não exige nomes das alunas.
+      </p>
+      <div class="street-grid">
+        <div class="street-metric">
+          <div class="label">Total da turma</div>
+          <div id="sdTotal" class="value">25</div>
+        </div>
+        <div class="street-metric">
+          <div class="label">Confirmadas</div>
+          <div id="sdConfirmadas" class="value">0</div>
+        </div>
+        <div class="street-metric">
+          <div class="label">Pendentes</div>
+          <div id="sdPendentes" class="value">25</div>
+        </div>
+        <div class="street-metric">
+          <div class="label">Taxa de adesão</div>
+          <div id="sdTaxa" class="value">0,0%</div>
+        </div>
+      </div>
     </section>
 
     <section class="card table-card">
@@ -418,8 +582,11 @@
 
     let dados = [];
     let snapshot = null;
+    let resumoBallet = null;
+    let streetDance = null;
     let barChart = null;
     let donutChart = null;
+    let engagementChart = null;
 
     const loginView = document.getElementById('loginView');
     const appView = document.getElementById('appView');
@@ -488,7 +655,7 @@
 
       const { data, error } = await client
         .from('festival_dashboard')
-        .select('id,dados,total,atualizado_em')
+        .select('id,dados,total,resumo_ballet,street_dance,atualizado_em')
         .eq('id', 1)
         .single();
 
@@ -500,10 +667,17 @@
 
       snapshot = data;
       dados = Array.isArray(data.dados) ? data.dados : [];
+      resumoBallet = data.resumo_ballet && typeof data.resumo_ballet === 'object'
+        ? data.resumo_ballet
+        : null;
+      streetDance = data.street_dance && typeof data.street_dance === 'object'
+        ? data.street_dance
+        : { total: 25, confirmadas: 0, pendentes: 25, taxa: 0 };
 
       montarResumo();
       montarFiltros();
       montarGraficos();
+      montarEngajamento();
       renderTabela();
 
       document.getElementById('syncStatus').textContent = 'Dados carregados';
@@ -513,12 +687,21 @@
       const counts = {};
       TURMAS.forEach(t => counts[t.codigo] = 0);
 
-      dados.forEach(item => {
-        const codigo = String(item.turma_codigo || '').toUpperCase();
-        if (!(codigo in counts)) counts[codigo] = 0;
-        counts[codigo]++;
-      });
+      // Preferimos o resumo agregado vindo do n8n/Supabase.
+      if (resumoBallet?.turmas && Array.isArray(resumoBallet.turmas)) {
+        resumoBallet.turmas.forEach(t => {
+          counts[String(t.codigo || '').toUpperCase()] = Number(t.confirmadas || 0);
+        });
+      } else {
+        // Fallback para compatibilidade com snapshots antigos.
+        dados.forEach(item => {
+          const codigo = String(item.turma_codigo || '').toUpperCase();
+          if (!(codigo in counts)) counts[codigo] = 0;
+          counts[codigo]++;
+        });
+      }
 
+      counts.SD = Number(streetDance?.confirmadas || counts.SD || 0);
       return counts;
     }
 
@@ -656,6 +839,233 @@
             }
           }
         }
+      });
+    }
+
+
+    function formatarPercentual(valor) {
+      return `${Number(valor || 0).toLocaleString('pt-BR', {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1
+      })}%`;
+    }
+
+    function montarEngajamento() {
+      const tbody = document.getElementById('engagementTableBody');
+      tbody.innerHTML = '';
+
+      const ordemBallet = [
+        { codigo:'B1', nome:'Baby Class - I' },
+        { codigo:'B2', nome:'Baby Class - II' },
+        { codigo:'PB', nome:'Pré-Baby' },
+        { codigo:'P1', nome:'Preliminar - I (Pré-I)' },
+        { codigo:'P2', nome:'Preliminar - II (Pré-II)' },
+        { codigo:'AV', nome:'Avançado' }
+      ];
+
+      const origem = Array.isArray(resumoBallet?.turmas)
+        ? resumoBallet.turmas
+        : [];
+
+      const mapa = Object.fromEntries(
+        origem.map(t => [String(t.codigo || '').toUpperCase(), t])
+      );
+
+      const turmas = ordemBallet.map(ref => {
+        const item = mapa[ref.codigo] || {};
+        const ativas = Number(item.ativas || 0);
+        const confirmadas = Number(item.confirmadas || 0);
+        const pendentes = Number(
+          item.pendentes ?? Math.max(ativas - confirmadas, 0)
+        );
+        const taxa = Number(
+          item.taxa ?? (ativas > 0 ? (confirmadas / ativas) * 100 : 0)
+        );
+
+        return {
+          codigo: ref.codigo,
+          nome: ref.nome,
+          ativas,
+          confirmadas,
+          pendentes,
+          taxa
+        };
+      });
+
+      turmas.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${escapeHtml(t.nome)}</td>
+          <td>${t.ativas}</td>
+          <td>${t.confirmadas}</td>
+          <td>${t.pendentes}</td>
+          <td>${formatarPercentual(t.taxa)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const totalAtivas = Number(
+        resumoBallet?.total_ativas ??
+        turmas.reduce((acc, t) => acc + t.ativas, 0)
+      );
+      const totalConfirmadas = Number(
+        resumoBallet?.total_confirmadas ??
+        turmas.reduce((acc, t) => acc + t.confirmadas, 0)
+      );
+      const totalPendentes = Number(
+        resumoBallet?.total_pendentes ??
+        Math.max(totalAtivas - totalConfirmadas, 0)
+      );
+      const taxaGeral = Number(
+        resumoBallet?.taxa_geral ??
+        (totalAtivas > 0 ? (totalConfirmadas / totalAtivas) * 100 : 0)
+      );
+
+      document.getElementById('totalAtivasBallet').textContent = totalAtivas;
+      document.getElementById('totalConfirmadasBallet').textContent = totalConfirmadas;
+      document.getElementById('totalPendentesBallet').textContent = totalPendentes;
+      document.getElementById('taxaGeralBallet').textContent = formatarPercentual(taxaGeral);
+
+      const sdTotal = Number(streetDance?.total ?? 25);
+      const sdConfirmadas = Number(streetDance?.confirmadas ?? 0);
+      const sdPendentes = Number(
+        streetDance?.pendentes ?? Math.max(sdTotal - sdConfirmadas, 0)
+      );
+      const sdTaxa = Number(
+        streetDance?.taxa ?? (sdTotal > 0 ? (sdConfirmadas / sdTotal) * 100 : 0)
+      );
+
+      document.getElementById('sdTotal').textContent = sdTotal;
+      document.getElementById('sdConfirmadas').textContent = sdConfirmadas;
+      document.getElementById('sdPendentes').textContent = sdPendentes;
+      document.getElementById('sdTaxa').textContent = formatarPercentual(sdTaxa);
+
+      if (engagementChart) engagementChart.destroy();
+
+      const percentLabelsPlugin = {
+        id: 'percentLabels',
+        afterDatasetsDraw(chart) {
+          const { ctx, scales } = chart;
+          ctx.save();
+          ctx.textAlign = 'center';
+
+          turmas.forEach((t, index) => {
+            const x = chart.getDatasetMeta(0).data[index]?.x;
+            if (x == null) return;
+
+            const yTop = scales.y.getPixelForValue(t.ativas);
+
+            ctx.font = '700 14px system-ui';
+            ctx.fillStyle = '#c2185b';
+            ctx.fillText(formatarPercentual(t.taxa), x, yTop - 12);
+
+            const metaConfirmadas = chart.getDatasetMeta(0).data[index];
+            const metaPendentes = chart.getDatasetMeta(1).data[index];
+
+            if (t.confirmadas > 0 && metaConfirmadas) {
+              const yCenter = (metaConfirmadas.y + metaConfirmadas.base) / 2;
+              ctx.font = '700 13px system-ui';
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(String(t.confirmadas), x, yCenter + 4);
+            }
+
+            if (t.pendentes > 0 && metaPendentes) {
+              const yCenter = (metaPendentes.y + metaPendentes.base) / 2;
+              ctx.font = '600 13px system-ui';
+              ctx.fillStyle = '#7c1d52';
+              ctx.fillText(String(t.pendentes), x, yCenter + 4);
+            }
+          });
+
+          ctx.restore();
+        }
+      };
+
+      engagementChart = new Chart(document.getElementById('engagementChart'), {
+        type:'bar',
+        data:{
+          labels: turmas.map(t => t.nome),
+          datasets:[
+            {
+              label:'Confirmadas',
+              data: turmas.map(t => t.confirmadas),
+              backgroundColor:'#f45aaa',
+              borderColor:'#a61b64',
+              borderWidth:1,
+              stack:'engajamento'
+            },
+            {
+              label:'Pendentes',
+              data: turmas.map(t => t.pendentes),
+              backgroundColor:'#fde1e3',
+              borderColor:'#a61b64',
+              borderWidth:1,
+              stack:'engajamento'
+            }
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          layout:{
+            padding:{top:30,right:14,left:8,bottom:8}
+          },
+          plugins:{
+            title:{
+              display:true,
+              text:'Engajamento das Turmas - Festival 2026',
+              color:'#8b1454',
+              font:{size:22,weight:'700'},
+              padding:{bottom:18}
+            },
+            legend:{
+              position:'top',
+              align:'end',
+              labels:{
+                color:'#6f174d',
+                boxWidth:18
+              }
+            },
+            tooltip:{
+              callbacks:{
+                footer:(items)=>{
+                  const idx = items[0].dataIndex;
+                  return `Taxa de adesão: ${formatarPercentual(turmas[idx].taxa)}`;
+                }
+              }
+            }
+          },
+          scales:{
+            x:{
+              stacked:true,
+              ticks:{
+                color:'#7c1d52',
+                maxRotation:25,
+                minRotation:25
+              },
+              grid:{display:false}
+            },
+            y:{
+              stacked:true,
+              beginAtZero:true,
+              ticks:{
+                precision:0,
+                color:'#7c1d52'
+              },
+              title:{
+                display:true,
+                text:'Número de Alunas',
+                color:'#7c1d52',
+                font:{weight:'700'}
+              },
+              grid:{
+                color:'rgba(244,90,170,.20)',
+                borderDash:[5,5]
+              }
+            }
+          }
+        },
+        plugins:[percentLabelsPlugin]
       });
     }
 
